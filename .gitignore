@@ -1,0 +1,7 @@
+.venv/
+venv/
+.checkpoint/
+logs/
+*.log
+.env
+__pycache__
