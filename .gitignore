@@ -5,3 +5,7 @@ logs/
 *.log
 .env
 __pycache__
+*.yml
+Dockerfile
+*.sh
+.dockerignore
