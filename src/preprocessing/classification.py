@@ -17,6 +17,7 @@ import re
 import unicodedata
 from typing import Dict, List, Optional, Tuple
 
+
 # Domaines (mêmes libellés que config.settings.DOMAINES)
 LOG = "Logement & Pouvoir d'Achat"
 SEC = "Securité & Propreté"
@@ -24,20 +25,25 @@ ENV = "Environnement & Sécheresse"
 TRA = "Transports & Mobilité"
 SAN = "Pénurie Médicale & Santé"
 
+
 # (motif, poids). Un motif est cherché en début de mot, sans accents ni casse.
 MOTS_CLES: Dict[str, List[Tuple[str, int]]] = {
     ENV: [
-        # « incendie » est ambigu (feu de bâtiment = fait divers) : voir
-        # MALUS_BATIMENT ci-dessous, qui retire des points aux feux de bâtiments.
+        # Feux de végétation / canicule / sécheresse
         ("incendie", 2), ("feu de", 2), ("feux de", 2), ("megafeux", 3),
-        ("depart de feu", 3),
-        ("feu se declare", 3), ("flammes", 2), ("hectares", 3), ("maquis", 3),
-        ("evacuent", 1), ("canicule", 3),
-        ("secheresse", 3), ("vegetation", 2), ("sapeurs-pompiers", 1),
-        ("pompiers", 1), ("restriction d'eau", 3), ("eau potable", 2),
-        ("penurie d'eau", 3), ("ressource en eau", 2), ("pollution", 2),
-        ("biodiversite", 2), ("erosion", 2), ("vigilance", 1),
-        ("temperatures", 1), ("coupure d'electricite", 1),
+        ("depart de feu", 3), ("feu se declare", 3), ("flammes", 2),
+        ("hectares", 3), ("maquis", 3), ("evacuent", 1),
+        ("canicule", 3), ("secheresse", 3), ("vegetation", 2),
+        ("sapeurs-pompiers", 1), ("pompiers", 1),
+        ("restriction d'eau", 3), ("eau potable", 2), ("penurie d'eau", 3),
+        ("ressource en eau", 2), ("niveau d'eau", 2), ("stocks d'eau", 2),
+        ("alerte secheresse", 3),
+        ("pollution", 2), ("biodiversite", 2), ("erosion", 2),
+        ("vigilance", 1), ("temperatures", 1), ("coupure d'electricite", 1),
+        # Intempéries / crues / orages (manquants dans les données réelles)
+        ("intemperies", 3), ("intemperie", 3), ("crues", 3), ("crue", 3),
+        ("inondations", 3), ("inondation", 3), ("foudre", 2), ("orage", 2),
+        ("coulees", 2), ("coulées", 2), ("risque incendie", 3),
     ],
     SEC: [
         ("homicide", 3), ("tue par balle", 3), ("meurtre", 3), ("assassinat", 3),
@@ -48,31 +54,40 @@ MOTS_CLES: Dict[str, List[Tuple[str, int]]] = {
         ("agression", 2), ("agresse", 2), ("violences", 2), ("cambriolage", 2),
         ("braquage", 3), ("banditisme", 3), ("jirs", 3), ("parquet", 1),
         ("explosifs", 3), ("dynamite", 3), ("delinquance", 2),
-        ("incivilites", 2), ("dechets", 2), ("proprete", 2), ("enquete ouverte", 1),
-        ("refus d'obtemperer", 2), ("incendie volontaire", 4),
-        ("incendie criminel", 4), ("police", 1), ("gendarmerie", 1),
+        ("incivilites", 2), ("dechets", 2), ("proprete", 2),
+        ("enquete ouverte", 1), ("refus d'obtemperer", 2),
+        ("incendie volontaire", 4), ("incendie criminel", 4),
+        ("piste criminelle", 4), ("criminelle", 2), ("criminel", 2),
+        ("police", 1), ("gendarmerie", 1),
     ],
     TRA: [
         ("accident de la circulation", 4), ("choc frontal", 4), ("collision", 3),
         ("accident de la route", 4), ("routier", 2), ("trafic", 2),
-        ("circulation", 2), ("automobiliste", 2), ("motard", 2), ("ter ", 2),
-        ("train", 2), ("bus ", 2), ("ferry", 3), ("traversee", 2),
-        ("aeroport", 3), ("vol retarde", 3), ("navette", 2), ("rt 10", 2),
-        ("rn 193", 2), ("autocar", 2), ("transports", 2), ("mobilite", 2),
+        ("circulation", 2), ("automobiliste", 2), ("motard", 2),
+        ("ter ", 2), ("train", 2), ("bus ", 2), ("ferry", 3),
+        ("traversee", 2), ("aeroport", 3), ("vol retarde", 3),
+        ("vols annules", 3), ("greve", 2),  # grèves aériennes / transports
+        ("navette", 2), ("rt 10", 2), ("rn 193", 2), ("autocar", 2),
+        ("transports", 2), ("mobilite", 2),
+        # Accidents type "chute de X mètres"
+        ("chute de", 2), ("fait une chute", 3),
     ],
     SAN: [
         ("hopital", 3), ("urgences", 3), ("medecin", 2), ("soignants", 2),
         ("infirmier", 2), ("sante", 2), ("patients", 2), ("chu ", 3),
         ("desert medical", 4), ("samu", 2), ("agence regionale de sante", 3),
         ("epidemie", 3), ("vaccin", 3), ("maternite", 2), ("pharmacie", 2),
+        ("noyade", 2),  # souvent traité comme fait divers santé / secours
     ],
     LOG: [
         ("loyer", 3), ("logement", 3), ("immobilier", 2), ("pouvoir d'achat", 4),
-        ("factures", 2), ("inflation", 3), ("carburant", 2), ("aide alimentaire", 3),
-        ("precarite", 3), ("restos du coeur", 3), ("hlm", 3), ("locataires", 2),
-        ("saisonniers", 1), ("cout de la vie", 3), ("prix des", 1),
+        ("factures", 2), ("inflation", 3), ("carburant", 2),
+        ("aide alimentaire", 3), ("precarite", 3), ("restos du coeur", 3),
+        ("hlm", 3), ("locataires", 2), ("saisonniers", 1),
+        ("cout de la vie", 3), ("prix des", 1),
     ],
 }
+
 
 # Un feu de bâtiment / de matériel n'est pas un feu de végétation : malus ENV
 # si l'un de ces mots est dans le titre.
@@ -80,7 +95,9 @@ MALUS_BATIMENT = 5
 MOTS_BATIMENT = (
     "paillote", "restaurant", "terrasse", "cuisine", "engin de chantier",
     "transformateur", "appartement", "creche", "voiture", "vehicule", "magasin",
+    "batiment agricole", "hangar",
 )
+
 
 SEUIL_SCORE = 3        # score minimal du domaine gagnant
 SEUIL_MARGE = 2        # avance minimale sur le 2e domaine
