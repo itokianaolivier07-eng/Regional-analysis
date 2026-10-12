@@ -27,16 +27,16 @@ def get_float(name: str, default: float) -> float:
 
 
 # MongoDB
-MONGO_URI = get_env("MONGO_URI", "mongodb://127.0.0.1:27017/")
-MONGO_DB_NAME = get_env("MONGO_DB_NAME", "region_france")
+MONGO_URI = get_env("MONGO_URI", "")
+MONGO_DB_NAME = get_env("MONGO_DB_NAME", "France-Corse")
 
 # Sources fixes (les deux départements)
 MONGO_SOURCE_CORSE_A = get_env("MONGO_SOURCE_CORSE_A", "Haute-Corse")
 MONGO_SOURCE_CORSE_B = get_env("MONGO_SOURCE_CORSE_B", "Corse-du-Sud")
 
 # Collections de sortie — pipeline unique Corse + finale régionale
-MONGO_PIPELINE_STAGES_C = get_env("MONGO_PIPELINE_STAGES_C", "pipeline_stage_C")
-MONGO_REGION_SYNTHESIS = get_env("MONGO_REGION_SYNTHESIS", "region_synthesis")
+MONGO_PIPELINE_STAGES_C = get_env("MONGO_PIPELINE_STAGES_C", "Analysis_pipeline")
+MONGO_REGION_SYNTHESIS = get_env("MONGO_REGION_SYNTHESIS", "Analysis_final")
 
 # Domaines imposés pour le batching LLM
 DOMAINES = [

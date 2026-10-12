@@ -141,40 +141,12 @@ SCHEMA_L4 = {
 }
 
 
-# REGION — Arbitrage régional
-SCHEMA_REGION = {
-    "type": "synthese_finale_region",
-    "mois": "",
-    "region": "Corse",
-    "territoires_sources": [],
-
-    "domaine_critique": "",
-    "statut_urgence": "modere",
-    "gravite": "modere",
-
-    "problematique": "",
-    "cause": "",
-    "preuve": "",
-    "consequence": "",
-    "solution": "",
-
-    "verdict": "",
-    "priorites": [],
-    "convergences": [],
-    "divergences": [],
-    "chiffres_cles": [],
-
-    "analyses_sources": [],
-    "meta": {},
-}
-
 
 _SCHEMAS = {
     "L1": SCHEMA_L1,
     "L2": SCHEMA_L2,
     "L3": SCHEMA_L3,
     "L4": SCHEMA_L4,
-    "REGION": SCHEMA_REGION,
 }
 
 ENRICHED_LIST_FIELDS = [
