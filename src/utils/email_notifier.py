@@ -41,9 +41,9 @@ def send_admin_email(
     html: Optional[str] = None,
 ) -> bool:
     """
-    Envoie un e-mail à ADMIN_EMAIL.
-    Retourne True si l'envoi a réussi, False sinon (jamais d'exception
-    propagée vers l'appelant).
+    Envoie un e-mail à tous les destinataires listés dans ADMIN_EMAIL
+    (adresses séparées par des virgules).
+    Retourne True si l'envoi a réussi, False sinon.
     """
     logger = None
     try:
@@ -60,10 +60,21 @@ def send_admin_email(
             )
         return False
 
+    # Plusieurs destinataires : "a@x.com, b@y.com"
+    recipients = [
+        addr.strip()
+        for addr in settings.ADMIN_EMAIL.split(",")
+        if addr.strip()
+    ]
+    if not recipients:
+        if logger:
+            logger.warning("ADMIN_EMAIL vide — e-mail non envoyé: %s", subject)
+        return False
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = settings.SMTP_FROM
-    msg["To"] = settings.ADMIN_EMAIL
+    msg["To"] = ", ".join(recipients)
     msg.attach(MIMEText(body, "plain", "utf-8"))
     if html:
         msg.attach(MIMEText(html, "html", "utf-8"))
@@ -89,12 +100,16 @@ def send_admin_email(
                 server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(
                 settings.SMTP_FROM,
-                [settings.ADMIN_EMAIL],
+                recipients,
                 msg.as_string(),
             )
 
         if logger:
-            logger.info("E-mail admin envoyé: %s → %s", subject, settings.ADMIN_EMAIL)
+            logger.info(
+                "E-mail admin envoyé: %s → %s",
+                subject,
+                ", ".join(recipients),
+            )
         return True
 
     except (smtplib.SMTPException, socket.error, OSError, TimeoutError) as exc:
@@ -105,7 +120,7 @@ def send_admin_email(
         if logger:
             logger.warning("Erreur inattendue SMTP (%s): %s", subject, exc)
         return False
-
+        
 
 def _now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -121,7 +136,7 @@ def notify_startup(
     """Notification au démarrage du système / du pipeline."""
     host = socket.gethostname()
     mois = mois or getattr(settings, "MOIS_CIBLE", "?")
-    subject = f"[Pipeline Corse] Démarrage — mois {mois}"
+    subject = f"[Pipeline Corse] Démarrage - mois {mois}"
     body = (
         f"Le pipeline d'analyse territoriale Corse a démarré.\n\n"
         f"Horodatage : {_now()}\n"
@@ -145,7 +160,7 @@ def notify_analysis_done(
     """Notification à la fin d'une analyse réussie."""
     mois = mois or (results or {}).get("mois") or getattr(settings, "MOIS_CIBLE", "?")
     run_id = run_id or (results or {}).get("run_id") or "?"
-    subject = f"[Pipeline Corse] Analyse terminée — mois {mois} (run {run_id})"
+    subject = f"[Pipeline Corse] Analyse terminée - mois {mois} (run {run_id})"
 
     lines = [
         "L'analyse territoriale Corse s'est terminée avec succès.",
@@ -193,7 +208,7 @@ def notify_error(
     elif "timeout" in lower:
         tag = "TIMEOUT"
 
-    subject = f"[Pipeline Corse] {tag} — {context} (mois {mois})"
+    subject = f"[Pipeline Corse] {tag} - {context} (mois {mois})"
 
     tb = ""
     if isinstance(error, BaseException):
