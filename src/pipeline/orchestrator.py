@@ -3,6 +3,7 @@ import uuid
 from typing import Dict, Any, Optional
 from config import settings
 from src.utils.logger import get_logger
+from src.utils.email_notifier import notify_error
 from src.db.mongo_client import ensure_indexes
 from src.db.source_reader import read_finale
 from src.pipeline.stage0_normalization import run_stage_0
@@ -46,7 +47,25 @@ def run_pipeline_territoire(
 
     for s in ordered:
         logger.info(f"--- {departement} / stage {s} ---")
-        results[s] = stages[s]()
+        try:
+            results[s] = stages[s]()
+        except Exception as exc:
+            # Erreur bloquante sur un stage → notifie l'admin puis relance
+            logger.error(
+                f"Erreur bloquante stage {s} ({departement}): {exc}",
+                exc_info=True,
+            )
+            try:
+                notify_error(
+                    exc,
+                    context=f"stage {s} / {departement}",
+                    mois=mois,
+                    stage=s,
+                    run_id=run_id,
+                )
+            except Exception:
+                pass
+            raise
 
     return results
 
@@ -127,7 +146,6 @@ def run_pipeline(
     if departement:
         # Accepte les anciens noms → redirige vers Corse
         if departement in ("Haute-Corse", "Corse-du-Sud"):
-            get_logger = __import__("src.utils.logger", fromlist=["get_logger"]).get_logger
             get_logger().warning(
                 f"Territoire '{departement}' fusionné dans le pipeline unique « Corse »."
             )

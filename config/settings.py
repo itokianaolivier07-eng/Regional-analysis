@@ -126,6 +126,18 @@ LLM_TOKEN_BUDGET_DAILY = get_int("LLM_TOKEN_BUDGET_DAILY", 0)
 LOGS_DIR = BASE_DIR / "logs"
 CHECKPOINT_DIR = BASE_DIR / ".checkpoint"
 
+# SMTP - notifications admin (démarrage, fin d'analyse, erreurs bloquantes)
+SMTP_ENABLED = get_env("SMTP_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
+SMTP_HOST = get_env("SMTP_HOST", "")
+SMTP_PORT = get_int("SMTP_PORT", 587)
+SMTP_USER = get_env("SMTP_USER", "")
+SMTP_PASSWORD = get_env("SMTP_PASSWORD", "")
+SMTP_FROM = get_env("SMTP_FROM", "") or SMTP_USER
+ADMIN_EMAIL = get_env("ADMIN_EMAIL", "")
+SMTP_USE_TLS = get_env("SMTP_USE_TLS", "true").lower() in {"1", "true", "yes", "on"}
+SMTP_USE_SSL = get_env("SMTP_USE_SSL", "false").lower() in {"1", "true", "yes", "on"}
+SMTP_TIMEOUT = get_int("SMTP_TIMEOUT", 30)
+
 VALID_LLM_PROVIDERS = {"google", "openrouter"}
 
 

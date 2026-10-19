@@ -39,7 +39,7 @@ def _fill(data: dict, schema: dict) -> dict:
     }
 
 
-# L1 — Micro-synthèse (1 analyse d'un lot de documents sources)
+# L1 Micro-synthèse (1 analyse d'un lot de documents sources)
 SCHEMA_L1 = {
     "lot_id": "",
     "type": "synthese_l1",
@@ -64,7 +64,7 @@ SCHEMA_L1 = {
 }
 
 
-# L2 — Méso-synthèse (consolidation d'analyses L1)
+# L2 Méso-synthèse (consolidation d'analyses L1)
 SCHEMA_L2 = {
     "lot_id": "",
     "type": "synthese_l2",
@@ -90,7 +90,7 @@ SCHEMA_L2 = {
 }
 
 
-# L3 — Bilan transversal
+# L3 Bilan transversal
 SCHEMA_L3 = {
     "lot_id": "",
     "type": "synthese_l3",
@@ -115,7 +115,7 @@ SCHEMA_L3 = {
 }
 
 
-# L4 — Arbitrage final département
+# L4 Arbitrage final département
 SCHEMA_L4 = {
     "type": "synthese_finale_departement",
     "mois": "",
