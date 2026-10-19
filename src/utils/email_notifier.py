@@ -55,7 +55,7 @@ def send_admin_email(
     if not _smtp_ready():
         if logger:
             logger.debug(
-                "SMTP désactivé ou config incomplète — e-mail non envoyé: %s",
+                "SMTP désactivé ou config incomplète - e-mail non envoyé: %s",
                 subject,
             )
         return False
@@ -68,7 +68,7 @@ def send_admin_email(
     ]
     if not recipients:
         if logger:
-            logger.warning("ADMIN_EMAIL vide — e-mail non envoyé: %s", subject)
+            logger.warning("ADMIN_EMAIL vide - e-mail non envoyé: %s", subject)
         return False
 
     msg = MIMEMultipart("alternative")
@@ -106,7 +106,7 @@ def send_admin_email(
 
         if logger:
             logger.info(
-                "E-mail admin envoyé: %s → %s",
+                "E-mail admin envoyé: %s - %s",
                 subject,
                 ", ".join(recipients),
             )
@@ -120,7 +120,7 @@ def send_admin_email(
         if logger:
             logger.warning("Erreur inattendue SMTP (%s): %s", subject, exc)
         return False
-        
+
 
 def _now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
