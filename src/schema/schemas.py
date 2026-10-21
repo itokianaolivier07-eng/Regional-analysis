@@ -155,6 +155,17 @@ ENRICHED_LIST_FIELDS = [
     "chiffres_cles",
 ]
 
+class EmptySynthesisError(ValueError):
+    """Le LLM a renvoyé un JSON sans contenu exploitable."""
+
+
+def ensure_content(data: dict, stage: str) -> dict:
+    """Rejette une synthèse dont problematique, resume et verdict sont tous vides."""
+    if not any(str(data.get(k) or "").strip() for k in ("problematique", "resume", "verdict")):
+        raise EmptySynthesisError(
+            f"Synthèse {stage} vide (problematique, resume et verdict absents) - réponse LLM rejetée."
+        )
+    return data
 
 def validate_and_fill(data: dict, stage: str) -> dict:
     if stage not in _SCHEMAS:

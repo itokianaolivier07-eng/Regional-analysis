@@ -10,7 +10,7 @@ import random
 import requests
 
 from config import settings
-from src.llm.exceptions import OpenRouterError, OpenRouterQuotaError
+from src.llm.exceptions import OpenRouterError, OpenRouterQuotaError, LLMTruncatedError
 from src.utils.logger import get_logger
 
 
@@ -87,6 +87,11 @@ def _call_with_key(messages: list, api_key: str) -> str:
 
             resp.raise_for_status()
             data = resp.json()
+            if data["choices"][0].get("finish_reason") == "length":
+                raise LLMTruncatedError(
+                    f"Réponse OpenRouter tronquée (limite={settings.LLM_MAX_TOKENS_OUTPUT}). "
+                    f"Augmentez LLM_MAX_TOKENS_OUTPUT ou réduisez BATCH_SIZE."
+                )
             return data["choices"][0]["message"]["content"]
         except OpenRouterQuotaError:
             raise

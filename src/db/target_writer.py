@@ -1,17 +1,8 @@
 """Écriture des stages et de la synthèse finale régionale."""
-from datetime import datetime, timezone
 from typing import Optional
 from config import settings
+from src.db.audit import build_upsert
 from src.db.mongo_client import get_pipeline_collection, get_final_collection
-
-
-def _add_audit(doc: dict) -> dict:
-    now = datetime.now(timezone.utc)
-    doc.setdefault("created_at", now)
-    doc["updated_at"] = now
-    doc["date_execution"] = now
-    doc["version"] = int(doc.get("version", 0)) + 1
-    return doc
 
 
 def _save_stage_doc(doc: dict, stage: str, mois: str, departement: str) -> bool:
@@ -20,13 +11,12 @@ def _save_stage_doc(doc: dict, stage: str, mois: str, departement: str) -> bool:
     doc = dict(doc)
     doc.pop("_id", None)
     doc.update({"stage": stage, "mois": mois, "departement": departement})
-    _add_audit(doc)
     coll = get_pipeline_collection(departement)
     if stage == "L0":
         key = {"mois": mois, "stage": stage, "document_id": doc.get("document_id")}
     else:
         key = {"mois": mois, "stage": stage, "lot_id": doc.get("lot_id")}
-    coll.update_one(key, {"$set": doc}, upsert=True)
+    coll.update_one(key, build_upsert(doc), upsert=True)
     return True
 
 
@@ -56,9 +46,8 @@ def save_indicateurs(
         "stage": "indicateurs",
         "run_id": run_id,
     }
-    _add_audit(doc)
     get_pipeline_collection(departement).update_one(
-        {"mois": mois, "stage": "indicateurs"}, {"$set": doc}, upsert=True
+        {"mois": mois, "stage": "indicateurs"}, build_upsert(doc), upsert=True
     )
     return True
 
@@ -80,8 +69,17 @@ def save_synthese_finale(doc: dict, mois: str, departement: str) -> bool:
         "stage": "L4",
         "territoires_sources": ["Haute-Corse", "Corse-du-Sud"],
     })
-    _add_audit(doc)
     get_final_collection(departement).update_one(
-        {"region": region, "mois": mois}, {"$set": doc}, upsert=True
+        {"region": region, "mois": mois}, build_upsert(doc), upsert=True
     )
     return True
+
+def purge_lots_obsoletes(stage: str, mois: str, departement: str, lot_ids_a_garder) -> int:
+    """Supprime les lots d'un stage qui ne correspondent plus à aucun lot courant."""
+    garder = list(lot_ids_a_garder)
+    if not garder:
+        return 0  # par sécurité : jamais de suppression totale
+    res = get_pipeline_collection(departement).delete_many(
+        {"mois": mois, "stage": stage, "lot_id": {"$nin": garder}}
+    )
+    return res.deleted_count

@@ -10,9 +10,14 @@ import random
 import requests
 
 from config import settings
-from src.llm.exceptions import LLMError, GoogleQuotaError
+from src.llm.exceptions import LLMError, GoogleQuotaError, LLMTruncatedError
 from src.utils.logger import get_logger
 
+def _log_retry(model: str, attempt: int, motif: str) -> None:
+    get_logger().warning(
+        f"[LLM] Google/{model} tentative {attempt + 1}/{settings.LLM_MAX_RETRIES + 1} "
+        f"échouée : {motif}"
+    )
 
 _SESSION = requests.Session()
 _key_index = 0
@@ -47,6 +52,8 @@ def _call_with_key(messages: list, api_key: str) -> str:
     headers = {"Content-Type": "application/json"}
     if api_key.startswith("ya29.") or api_key.startswith("ya29_"):
         headers["Authorization"] = f"Bearer {api_key}"
+    else:
+        headers["x-goog-api-key"] = api_key
 
     # Construire le prompt textuel à partir des messages
     prompt_parts = []
@@ -101,10 +108,7 @@ def _call_with_key(messages: list, api_key: str) -> str:
     for attempt in range(settings.LLM_MAX_RETRIES + 1):
         for model in model_candidates:
             call_url = f"{base}/v1beta/models/{model}:generateContent"
-            if api_key and not headers.get("Authorization"):
-                sep = "&" if "?" in call_url else "?"
-                call_url = f"{call_url}{sep}key={api_key}"
-
+            
             try:
                 resp = _SESSION.post(
                     call_url,
@@ -117,26 +121,37 @@ def _call_with_key(messages: list, api_key: str) -> str:
                     if "quota" in resp.text.lower() or "resource_exhausted" in resp.text.lower():
                         raise GoogleQuotaError(err_msg)
                     last_error = LLMError(err_msg)
+                    _log_retry(model, attempt, err_msg[:120])
                     backoff = min(4, 0.5 * (2 ** attempt))
                     time.sleep(backoff + random.uniform(0, 0.5))
                     continue
 
                 if resp.status_code in (400, 404):
                     last_error = LLMError(f"HTTP {resp.status_code}: {resp.text[:200]}")
+                    _log_retry(model, attempt, str(last_error)[:120])
                     continue
 
                 if resp.status_code >= 500:
                     last_error = LLMError(f"HTTP {resp.status_code}: {resp.text[:200]}")
+                    _log_retry(model, attempt, str(last_error)[:120])
                     time.sleep(min(2, 0.25 * (2 ** attempt)))
                     continue
 
                 resp.raise_for_status()
                 data = resp.json()
+                finish = ((data.get("candidates") or [{}])[0]).get("finishReason")
+                if finish == "MAX_TOKENS":
+                    raise LLMTruncatedError(
+                        f"Réponse Google tronquée (MAX_TOKENS, limite="
+                        f"{settings.LLM_MAX_TOKENS_OUTPUT}). Augmentez LLM_MAX_TOKENS_OUTPUT "
+                        f"ou réduisez BATCH_SIZE."
+                    )
                 return _extract_text(data)
             except GoogleQuotaError:
                 raise
             except (requests.RequestException, KeyError, IndexError) as exc:
                 last_error = LLMError(str(exc))
+                _log_retry(model, attempt, f"{type(exc).__name__}: {str(exc)[:120]}")
                 time.sleep(min(1, 0.1 * (2 ** attempt)))
                 continue
 

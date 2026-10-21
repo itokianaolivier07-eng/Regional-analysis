@@ -7,16 +7,24 @@ from typing import Dict, Any, Optional
 from config import settings
 from src.utils.logger import get_logger
 from src.db.source_reader import read_l2, read_l3
-from src.db.target_writer import save_bilan_transversal
+from src.db.target_writer import save_bilan_transversal, purge_lots_obsoletes
 from src.llm.client import call_llm_json_avec_retry
 from src.llm.token_budget import BudgetExceeded
+from src.batching.lot_hash import compute_synthese_hash, prompt_version
 from src.batching.batcher import create_batches_by_domaine, domaine_synthese
-from src.schema.schemas import validate_and_fill
+from src.schema.schemas import validate_and_fill, ensure_content
 from src.pipeline.aggregation import select_enriched, merge_enriched
 from src.pipeline.parallel import run_batches, ThreadSafeCounters
 from src.llm.prompts.loader import load_prompts
 
 SYSTEM_PROMPT, USER_TEMPLATE = load_prompts("DEPARTEMENT_L3")
+LOT_CONFIG = prompt_version(SYSTEM_PROMPT, USER_TEMPLATE)
+
+
+def _assign_lot_ids(batches, departement, mois):
+    for batch in batches:
+        h = compute_synthese_hash(batch["documents"], batch.get("domaine", ""), LOT_CONFIG)
+        batch["lot_id"] = f"L3-{departement}-{mois}-{h}"
 
 def run_stage_3(
     mois: str,
@@ -48,8 +56,7 @@ def run_stage_3(
         "L3",
         max_lots_per_domaine=settings.MAX_LOTS_L3_PAR_DOMAINE,
     )
-    for i, b in enumerate(batches, 1):
-        b["lot_id"] = f"L3-{departement}-{mois}-{i:04d}"
+    _assign_lot_ids(batches, departement, mois)
 
     by_dom = {}
     for b in batches:
@@ -114,7 +121,7 @@ def run_stage_3(
                 f"  Lot {lot_id} ({batch.get('index', 0)}/{total_lots}) — appel LLM…"
             )
             data = call_llm_json_avec_retry(SYSTEM_PROMPT, user_prompt)
-            data = validate_and_fill(data, "L3")
+            data = ensure_content(validate_and_fill(data, "L3"), "L3")
             if batch.get("domaine") and batch["domaine"] != "non_classe":
                 data["domaine_critique"] = batch["domaine"]
             data["lot_id"] = lot_id
@@ -150,6 +157,12 @@ def run_stage_3(
     run_batches(batches, _process, max_workers=settings.MAX_WORKERS)
 
     stats = counters.snapshot()
+
+    if stats["erreurs"] == 0:
+        purges = purge_lots_obsoletes("L3", mois, departement, [b["lot_id"] for b in batches])
+        if purges:
+            logger.info(f"  Lots L3 obsolètes supprimés : {purges}")
+    
     duree = round(time.time() - start, 2)
     logger.info(
         f"  Stage 3 terminé : {stats['succes']}/{len(batches)} lots "

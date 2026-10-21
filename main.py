@@ -13,8 +13,11 @@ Utilisation :
 """
 import argparse
 import sys
+import time
 from config import settings
 from src.pipeline.orchestrator import run_pipeline
+from src.db.run_log import save_run
+from src.pipeline.run_status import compute_statut_run
 from src.utils.logger import get_logger
 from src.utils.email_notifier import (
     notify_startup,
@@ -58,6 +61,12 @@ def parse_args():
 def main():
     args = parse_args()
     logger = get_logger()
+    t0 = time.time()
+    try:
+        mois = settings.resolve_mois(args.mois)
+    except ValueError as exc:
+        logger.error(str(exc))
+        sys.exit(2)
 
     if args.force_update:
         logger.warning("MODE FORCE-UPDATE ACTIVÉ")
@@ -66,7 +75,7 @@ def main():
     try:
         notify_startup(
             stage=args.stage,
-            mois=args.mois,
+            mois=mois,
             departement=args.departement,
             force_update=args.force_update,
         )
@@ -78,14 +87,45 @@ def main():
         results = run_pipeline(
             stage=args.stage,
             force_update=args.force_update,
-            mois=args.mois,
+            mois=mois,
             departement=args.departement,
         )
+
+        statut, problemes = compute_statut_run(results)
+       
+        try:
+            save_run(
+                run_id=(results or {}).get("run_id") or f"inconnu-{int(t0)}",
+                mois=mois,
+                stage=args.stage,
+                force_update=args.force_update,
+                statut=statut,
+                problemes=problemes,
+                duree_secondes=time.time() - t0,
+                results=results,
+            )
+        except Exception as run_exc:
+            logger.warning(f"Historique du run non enregistré: {run_exc}")
+        
+        if statut != "complete":
+            resume = " ; ".join(problemes)
+            logger.error(f"RUN INCOMPLET : {resume}")
+            try:
+                notify_error(
+                    f"Run incomplet : {resume}",
+                    context="statut du run (partial)",
+                    mois=mois,
+                    stage=args.stage,
+                )
+            except Exception as mail_exc:
+                logger.warning(f"Notification run incomplet non envoyée: {mail_exc}")
+            sys.exit(3)
+
         # --- Notification de fin d'analyse ---
         try:
             notify_analysis_done(
                 results if isinstance(results, dict) else None,
-                mois=args.mois or settings.MOIS_CIBLE,
+                mois=mois or settings.MOIS_CIBLE,
                 stage=args.stage,
             )
         except Exception as mail_exc:
@@ -97,7 +137,7 @@ def main():
             notify_error(
                 "Arrêt manuel (Ctrl+C)",
                 context="main",
-                mois=args.mois,
+                mois=mois,
                 stage=args.stage,
             )
         except Exception:
@@ -105,11 +145,26 @@ def main():
         sys.exit(0)
     except Exception as exc:
         logger.error(f"Erreur non gérée : {exc}", exc_info=True)
+        
+        try:
+            save_run(
+                run_id=f"inconnu-{int(t0)}",
+                mois=mois,
+                stage=args.stage,
+                force_update=args.force_update,
+                statut="failed",
+                problemes=[f"{type(exc).__name__}: {str(exc)[:300]}"],
+                duree_secondes=time.time() - t0,
+                results=None,
+            )
+        except Exception:
+            pass  
+
         try:
             notify_error(
                 exc,
                 context="main (erreur bloquante)",
-                mois=args.mois or getattr(settings, "MOIS_CIBLE", None),
+                mois=mois or getattr(settings, "MOIS_CIBLE", None),
                 stage=args.stage,
             )
         except Exception:

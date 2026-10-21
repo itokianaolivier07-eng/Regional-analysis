@@ -1,13 +1,14 @@
 """Stage 4 — Arbitrage final : le domaine est choisi par Python, le LLM rédige."""
 import time
 import json
+import hashlib
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from src.utils.logger import get_logger
 from src.db.source_reader import read_l3, read_indicateurs, read_finale
 from src.db.target_writer import save_synthese_finale
 from src.llm.client import call_llm_json_avec_retry
-from src.schema.schemas import validate_and_fill
+from src.schema.schemas import validate_and_fill, ensure_content
 from src.pipeline.aggregation import select_enriched, merge_enriched
 from src.pipeline.arbitrage import (
     choisir_domaine,
@@ -28,21 +29,7 @@ def run_stage_4(
     logger = get_logger()
     start = time.time()
     logger.info(f"[STAGE 4] {departement} - arbitrage final / synthèse régionale mois {mois}")
-
-    if not force_update:
-        existing = read_finale(mois, departement)
-        if existing:
-            logger.info("  Synthèse finale déjà présente - skip")
-            return {
-                "stage": "4",
-                "mois": mois,
-                "departement": departement,
-                "succes": 1,
-                "skipped": 1,
-                "erreurs": 0,
-                "duree_secondes": 0,
-            }
-
+    
     docs_l3 = read_l3(mois, departement)
     logger.info(f"  Bilans L3 : {len(docs_l3)}")
     if not docs_l3:
@@ -173,11 +160,27 @@ def run_stage_4(
         ),
     )
 
+    empreinte = hashlib.sha1((SYSTEM_PROMPT + "\n" + user_prompt).encode("utf-8")).hexdigest()[:16]
+    if not force_update:
+        existing = read_finale(mois, departement)
+        if existing and (existing.get("meta") or {}).get("empreinte_entrees") == empreinte:
+            logger.info("  Synthèse finale à jour (entrées inchangées) - skip")
+            return {
+                "stage": "4",
+                "mois": mois,
+                "departement": departement,
+                "run_id": run_id,
+                "succes": 1,
+                "skipped": 1,
+                "erreurs": 0,
+                "duree_secondes": round(time.time() - start, 2),
+            }
+
     succes, skipped, erreurs = 0, 0, 0
 
     try:
         data = call_llm_json_avec_retry(SYSTEM_PROMPT, user_prompt)
-        data = validate_and_fill(data, "L4")
+        data = ensure_content(validate_and_fill(data, "L4"), "L4")
         data["domaine_critique"] = domaine
         data["gravite"] = choix["gravite"]
         data["statut_urgence"] = choix["gravite"]
@@ -187,6 +190,7 @@ def run_stage_4(
         data["region"] = "Corse"
         data["meta"] = {
             "run_id": run_id,
+            "empreinte_entrees": empreinte,
             "mois": mois,
             "source_territoire": departement,
             "nb_bilans_l3": len(docs_l3),

@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -37,6 +38,7 @@ MONGO_SOURCE_CORSE_B = get_env("MONGO_SOURCE_CORSE_B", "Corse-du-Sud")
 # Collections de sortie — pipeline unique Corse + finale régionale
 MONGO_PIPELINE_STAGES_C = get_env("MONGO_PIPELINE_STAGES_C", "Analysis_pipeline")
 MONGO_REGION_SYNTHESIS = get_env("MONGO_REGION_SYNTHESIS", "Analysis_final")
+MONGO_RUNS = get_env("MONGO_RUNS", "Analysis_runs")
 
 # Domaines imposés pour le batching LLM
 DOMAINES = [
@@ -79,6 +81,28 @@ DEFAULT_SOURCE_WEIGHT = 1.0
 
 # Filtre mensuel
 MOIS_CIBLE = get_env("MOIS_CIBLE", "")
+
+GLOBAL_MOIS = "global"
+_MOIS_RE = re.compile(r"(\d{4})-(0[1-9]|1[0-2])")
+
+
+def validate_mois(value: str) -> str:
+    v = (value or "").strip()
+    if v.lower() == GLOBAL_MOIS:
+        return GLOBAL_MOIS
+    m = _MOIS_RE.fullmatch(v)
+    if not m or not (2000 <= int(m.group(1)) <= 2100):
+        raise ValueError(
+            f"Mois invalide: {value!r}. Attendu: YYYY-MM (ex: 2026-08) ou '{GLOBAL_MOIS}'."
+        )
+    return v
+
+
+def resolve_mois(cli_value=None) -> str:
+    raw = (cli_value or MOIS_CIBLE or "").strip()
+    if not raw:
+        raise ValueError("Aucun mois défini : utilisez --mois ou MOIS_CIBLE dans le .env.")
+    return validate_mois(raw)
 
 def _collect_keys(*names: str) -> list:
     keys = []
@@ -174,10 +198,11 @@ def validate() -> None:
         raise RuntimeError("MONGO_PIPELINE_STAGES_C est obligatoire.")
     if not MONGO_REGION_SYNTHESIS:
         raise RuntimeError("MONGO_REGION_SYNTHESIS est obligatoire.")
-    if not MOIS_CIBLE:
-        raise RuntimeError("MOIS_CIBLE est obligatoire.")
-    if len(MOIS_CIBLE) != 7 or MOIS_CIBLE[4] != "-":
-        raise RuntimeError(f"MOIS_CIBLE doit être au format YYYY-MM, reçu: {MOIS_CIBLE!r}")
+    if MOIS_CIBLE:
+        try:
+            validate_mois(MOIS_CIBLE)
+        except ValueError as exc:
+            raise RuntimeError(f"MOIS_CIBLE invalide : {exc}") from exc        
     if BATCH_SIZE <= 0:
         raise RuntimeError("BATCH_SIZE doit être > 0.")
     if PAUSE_SECONDES < 0:

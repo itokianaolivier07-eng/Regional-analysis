@@ -49,8 +49,9 @@ def normaliser_document(doc: dict) -> dict:
 
 
 def filtrer_par_mois(docs: List[Dict], mois_cible: str) -> List[Dict]:
-    return [d for d in docs if not mois_cible or str(d.get("publication_date", "")).startswith(mois_cible)]
-
+    if not mois_cible or mois_cible == settings.GLOBAL_MOIS:
+        return list(docs)
+    return [d for d in docs if str(d.get("publication_date", "")).startswith(mois_cible)]
 
 def _normalize_text_for_dedup(text: str) -> str:
     """Normalise un texte pour détecter les near-duplicates (templates social_media)."""

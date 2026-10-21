@@ -5,7 +5,6 @@ from config import settings
 from src.utils.logger import get_logger
 from src.utils.email_notifier import notify_error
 from src.db.mongo_client import ensure_indexes
-from src.db.source_reader import read_finale
 from src.pipeline.stage0_normalization import run_stage_0
 from src.pipeline.stage1_micro import run_stage_1
 from src.pipeline.stage2_meso import run_stage_2
@@ -50,7 +49,7 @@ def run_pipeline_territoire(
         try:
             results[s] = stages[s]()
         except Exception as exc:
-            # Erreur bloquante sur un stage → notifie l'admin puis relance
+            # Erreur bloquante sur un stage - notifie l'admin puis relance
             logger.error(
                 f"Erreur bloquante stage {s} ({departement}): {exc}",
                 exc_info=True,
@@ -66,6 +65,18 @@ def run_pipeline_territoire(
             except Exception:
                 pass
             raise
+
+        # Un stage 1/2/3 incomplet bloque la suite : pas de finale sur données partielles
+        res = results[s]
+        if s in ("1", "2", "3") and (res.get("erreurs", 0) > 0 or res.get("error")):
+            reste = ordered[ordered.index(s) + 1:]
+            if reste:
+                logger.error(
+                    f"[{departement}] Stage {s} incomplet ({res.get('erreurs', 0)} erreur(s)) "
+                    f"- arrêt avant le stage {reste[0]} pour ne pas produire une synthèse "
+                    f"sur des données partielles."
+                )
+                break
 
     return results
 
@@ -104,18 +115,14 @@ def run_region(
         "territoires": {},
     }
 
-    if stage == "all" and not force_update and read_finale(mois, territoire):
-        logger.info(f"[{territoire}] Déjà traité (synthèse finale existante) - skip")
-        all_results["territoires"][territoire] = {"skipped": True}
-    else:
-        logger.info(f"[{territoire}] Lancement pipeline unique")
-        all_results["territoires"][territoire] = run_pipeline_territoire(
-            departement=territoire,
-            mois=mois,
-            run_id=run_id,
-            force_update=force_update,
-            stage=stage,
-        )
+    logger.info(f"[{territoire}] Lancement pipeline unique")
+    all_results["territoires"][territoire] = run_pipeline_territoire(
+        departement=territoire,
+        mois=mois,
+        run_id=run_id,
+        force_update=force_update,
+        stage=stage,
+    )
 
     logger.info("=" * 60)
     logger.info("PIPELINE TERMINÉ - résultat dans region_synthesis")
@@ -144,7 +151,7 @@ def run_pipeline(
         raise ValueError("MOIS_CIBLE non défini.")
 
     if departement:
-        # Accepte les anciens noms → redirige vers Corse
+        # Accepte les anciens noms - redirige vers Corse
         if departement in ("Haute-Corse", "Corse-du-Sud"):
             get_logger().warning(
                 f"Territoire '{departement}' fusionné dans le pipeline unique « Corse »."
