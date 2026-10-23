@@ -1,7 +1,7 @@
 """
 Test rapide SMTP — envoie un seul e-mail de test à ADMIN_EMAIL.
-Usage :
-    python test_smtp.py
+Usage (depuis la racine du projet) :
+    python -m scripts.smtp_check
 """
 from config import settings
 from src.utils.email_notifier import send_admin_email, _smtp_ready

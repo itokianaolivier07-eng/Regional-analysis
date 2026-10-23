@@ -2,6 +2,7 @@
 import time
 import json
 import hashlib
+from config import settings
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from src.utils.logger import get_logger
@@ -210,7 +211,7 @@ def run_stage_4(
         data = merge_enriched(data, docs_domaine, final=True)
         save_synthese_finale(data, mois=mois, departement=departement)
         succes = 1
-        logger.info(f"  Synthèse finale - region_synthesis OK ({departement})")
+        logger.info(f"  Synthèse finale - {settings.MONGO_REGION_SYNTHESIS} OK ({departement})")
     except Exception as e:
         erreurs = 1
         logger.error(f"  Erreur synthèse finale {departement}: {e}")

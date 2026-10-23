@@ -34,21 +34,20 @@ def parse_args():
         "--stage",
         type=str,
         default="all",
-        choices=["0", "1", "2", "3", "4", "region", "all"],
+        choices=["0", "1", "2", "3", "4", "all"],
         help="Étage à exécuter (0=normalisation … 4=finale régionale, all)",
     )
     parser.add_argument(
         "--mois",
         type=str,
         default=None,
-        help="Mois cible (ex: 2026-08). Sinon utilise MOIS_CIBLE du .env",
+        help="Mois cible (ex: 2026-08) ou 'global' (toutes les données). Sinon MOIS_CIBLE du .env",
     )
     parser.add_argument(
         "--departement",
         type=str,
         default=None,
-        help='Territoire (ex: "Corse"). Les anciens noms Haute-Corse / Corse-du-Sud '
-             "sont redirigés vers le pipeline unique Corse.",
+        help='Territoire (ex: "Corse"). Facultatif : le pipeline unique Corse est lancé par défaut.',
     )
     parser.add_argument(
         "--force-update",
@@ -125,7 +124,7 @@ def main():
         try:
             notify_analysis_done(
                 results if isinstance(results, dict) else None,
-                mois=mois or settings.MOIS_CIBLE,
+                mois=mois,
                 stage=args.stage,
             )
         except Exception as mail_exc:
@@ -164,7 +163,7 @@ def main():
             notify_error(
                 exc,
                 context="main (erreur bloquante)",
-                mois=mois or getattr(settings, "MOIS_CIBLE", None),
+                mois=mois,
                 stage=args.stage,
             )
         except Exception:

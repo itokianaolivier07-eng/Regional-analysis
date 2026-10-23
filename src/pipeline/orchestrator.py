@@ -33,13 +33,9 @@ def run_pipeline_territoire(
 
     if stage == "all":
         ordered = ["0", "1", "2", "3", "4"]
-    elif stage == "region":
-        # Avec le pipeline unique, la finale L4 EST déjà la synthèse régionale
-        # (écrite dans region_synthesis). On relance juste le stage 4.
-        ordered = ["4"]
     elif stage not in stages:
         raise ValueError(
-            f"Stage inconnu : '{stage}'. Attendus : {list(stages.keys())}, 'all' ou 'region'."
+            f"Stage inconnu : '{stage}'. Attendus : {list(stages.keys())} ou 'all'."
         )
     else:
         ordered = [stage]
@@ -92,10 +88,8 @@ def run_region(
     La finale (stage 4) est écrite directement dans region_synthesis.
     """
     logger = get_logger()
-    mois = mois or settings.MOIS_CIBLE
-    if not mois:
-        raise ValueError("MOIS_CIBLE non défini (arg --mois ou .env).")
-
+    mois = settings.resolve_mois(mois)
+    
     run_id = run_id or str(uuid.uuid4())[:8]
     ensure_indexes()
 
@@ -125,13 +119,10 @@ def run_region(
     )
 
     logger.info("=" * 60)
-    logger.info("PIPELINE TERMINÉ - résultat dans region_synthesis")
+    logger.info(f"PIPELINE TERMINÉ - résultat dans {settings.MONGO_REGION_SYNTHESIS}")
     logger.info("=" * 60)
     return all_results
 
-
-# Alias rétro-compatible
-run_region_corse = run_region
 
 
 def run_pipeline(
@@ -146,17 +137,10 @@ def run_pipeline(
     - Si departement est fourni : traite ce territoire (doit être « Corse »).
     - Sinon : lance le pipeline unique Corse.
     """
-    mois = mois or settings.MOIS_CIBLE
-    if not mois:
-        raise ValueError("MOIS_CIBLE non défini.")
-
+    mois = settings.resolve_mois(mois)
+    
     if departement:
-        # Accepte les anciens noms - redirige vers Corse
-        if departement in ("Haute-Corse", "Corse-du-Sud"):
-            get_logger().warning(
-                f"Territoire '{departement}' fusionné dans le pipeline unique « Corse »."
-            )
-            departement = "Corse"
+        
         if departement not in settings.TERRITOIRES:
             raise ValueError(
                 f"Territoire inconnu : {departement}. "
@@ -178,7 +162,7 @@ def run_pipeline(
             },
         }
 
-    return run_region_corse(
+    return run_region(
         mois=mois,
         force_update=force_update,
         stage=stage,

@@ -135,7 +135,7 @@ def notify_startup(
 ) -> bool:
     """Notification au démarrage du système / du pipeline."""
     host = socket.gethostname()
-    mois = mois or getattr(settings, "MOIS_CIBLE", "?")
+    mois = mois or "?"
     subject = f"[Pipeline Corse] Démarrage - mois {mois}"
     body = (
         f"Le pipeline d'analyse territoriale Corse a démarré.\n\n"
@@ -158,7 +158,7 @@ def notify_analysis_done(
     stage: str = "all",
 ) -> bool:
     """Notification à la fin d'une analyse réussie."""
-    mois = mois or (results or {}).get("mois") or getattr(settings, "MOIS_CIBLE", "?")
+    mois = mois or (results or {}).get("mois") or "?"
     run_id = run_id or (results or {}).get("run_id") or "?"
     subject = f"[Pipeline Corse] Analyse terminée - mois {mois} (run {run_id})"
 
@@ -193,7 +193,7 @@ def notify_error(
     extra: Optional[str] = None,
 ) -> bool:
     """Notification pour une erreur bloquante (crash, 429, JSON, etc.)."""
-    mois = mois or getattr(settings, "MOIS_CIBLE", "?")
+    mois = mois or "?"
     err_type = type(error).__name__ if isinstance(error, BaseException) else "Error"
     err_msg = str(error)
 

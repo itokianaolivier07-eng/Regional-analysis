@@ -52,7 +52,7 @@ def run_stage_0(
     if sources_brutes and not docs_mois:
         logger.warning(
             f"  {len(sources_brutes)} source(s) lue(s) mais aucune ne correspond "
-            f"au mois '{mois}'. Vérifiez le format de MOIS_CIBLE (attendu: YYYY-MM) "
+            f"au mois '{mois}'. Vérifiez le mois demandé (attendu: YYYY-MM ou 'global') "
             f"et les dates de publication_date des documents."
         )
 

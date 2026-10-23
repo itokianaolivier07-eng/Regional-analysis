@@ -133,35 +133,3 @@ Retourne exactement :
   "analyses_sources": [],
   "meta": {{}}
 }}
-
-## REGION
-
-Produis l'arbitrage régional de {region} pour {mois}.
-Territoires : {territoires}.
-Tranche le domaine critique régional.
-
-SYNTHESES FINALES :
-{finales_json}
-
-Retourne exactement :
-{{
-  "type": "synthese_finale_region",
-  "mois": "{mois}",
-  "region": "{region}",
-  "territoires_sources": [],
-  "domaine_critique": "",
-  "statut_urgence": "critique|eleve|grave|modere|faible",
-  "gravite": "critique|eleve|grave|modere|faible",
-  "problematique": "",
-  "cause": "",
-  "preuve": "",
-  "consequence": "",
-  "solution": "",
-  "verdict": "",
-  "priorites": [],
-  "convergences": [],
-  "divergences": [],
-  "chiffres_cles": [],
-  "analyses_sources": [],
-  "meta": {{}}
-}}
