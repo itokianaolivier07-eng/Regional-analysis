@@ -49,15 +49,17 @@ DOMAINES = [
     "Pénurie Médicale & Santé",
 ]
 
-# Mapping unique : un seul territoire « Corse » qui lit les deux sources
+# Nom de la région : source de vérité unique (clé du territoire et champ "region" des résultats)
+REGION_NAME = "Corse"
+
+# Mapping unique : un seul territoire qui lit les deux sources
 TERRITOIRES = {
-    "Corse": {
+    REGION_NAME: {
         "source_collection": MONGO_SOURCE_CORSE_A,  # fallback
         "sources": [MONGO_SOURCE_CORSE_A, MONGO_SOURCE_CORSE_B],
         "key": "C",
     },
 }
-REGION_NAME = "Corse"
 
 # Catégories réellement envoyées au LLM / traitées par Python.
 # government_pub (communiqués) passent maintenant par le LLM.

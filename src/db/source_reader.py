@@ -51,7 +51,7 @@ def read_indicateurs(mois: str, departement: str) -> Dict[str, Any]:
 
 
 def read_finale(mois: str, departement: str) -> Optional[Dict[str, Any]]:
-    """Lit la synthèse finale dans region_synthesis."""
+    """Lit la synthèse finale (collection MONGO_REGION_SYNTHESIS)."""
     return get_final_collection(departement).find_one(
         {"region": settings.REGION_NAME, "mois": mois}
     )

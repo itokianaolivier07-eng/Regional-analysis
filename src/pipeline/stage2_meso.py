@@ -11,7 +11,7 @@ from src.db.target_writer import save_meso_synthese, purge_lots_obsoletes
 from src.llm.client import call_llm_json_avec_retry
 from src.llm.token_budget import BudgetExceeded
 from src.llm.prompts.loader import load_prompts
-from src.batching.lot_hash import compute_synthese_hash, prompt_version
+from src.batching.lot_hash import assign_synthese_lot_ids, prompt_version
 from src.batching.batcher import create_batches_by_domaine, domaine_synthese
 from src.schema.schemas import validate_and_fill, ensure_content
 from src.pipeline.aggregation import select_enriched, merge_enriched
@@ -21,11 +21,6 @@ SYSTEM_PROMPT, USER_TEMPLATE = load_prompts("DEPARTEMENT_L2")
 
 LOT_CONFIG = prompt_version(SYSTEM_PROMPT, USER_TEMPLATE)
 
-
-def _assign_lot_ids(batches, departement, mois):
-    for batch in batches:
-        h = compute_synthese_hash(batch["documents"], batch.get("domaine", ""), LOT_CONFIG)
-        batch["lot_id"] = f"L2-{departement}-{mois}-{h}"
 
 def run_stage_2(
     mois: str,
@@ -51,7 +46,7 @@ def run_stage_2(
         }
 
     batches = create_batches_by_domaine(docs_l1, domaine_synthese, settings.BATCH_SIZE, "L2")
-    _assign_lot_ids(batches, departement, mois)
+    assign_synthese_lot_ids(batches, "L2", departement, mois, LOT_CONFIG)
     
     by_dom = {}
     for b in batches:
@@ -120,7 +115,7 @@ def run_stage_2(
             data["run_id"] = run_id
             data["mois"] = mois
             data["source_territoire"] = departement
-            data["region"] = "Corse"
+            data["region"] = settings.REGION_NAME
             data["meta"] = {
                 "run_id": run_id,
                 "lot_numero": batch["index"],
@@ -150,11 +145,8 @@ def run_stage_2(
 
     stats = counters.snapshot()
 
-    if stats["erreurs"] == 0:
-        purges = purge_lots_obsoletes("L2", mois, departement, [b["lot_id"] for b in batches])
-        if purges:
-            logger.info(f"  Lots L2 obsolètes supprimés : {purges}")
-
+    nettoyer_lots_obsoletes("L2", mois, departement, batches, stats["erreurs"], logger)
+    
     duree = round(time.time() - start, 2)
     logger.info(
         f"  Stage 2 terminé : {stats['succes']}/{len(batches)} lots "

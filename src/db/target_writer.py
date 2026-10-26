@@ -53,7 +53,7 @@ def save_indicateurs(
 
 
 def save_synthese_finale(doc: dict, mois: str, departement: str) -> bool:
-    """Écrit la synthèse finale dans region_synthesis."""
+    """Écrit la synthèse finale (collection MONGO_REGION_SYNTHESIS)."""    
     if not doc:
         return False
     doc = dict(doc)
@@ -67,7 +67,7 @@ def save_synthese_finale(doc: dict, mois: str, departement: str) -> bool:
         "departement": departement,
         "type": "synthese_finale_region",
         "stage": "L4",
-        "territoires_sources": ["Haute-Corse", "Corse-du-Sud"],
+        "territoires_sources": list(settings.TERRITOIRES[region]["sources"]),
     })
     get_final_collection(departement).update_one(
         {"region": region, "mois": mois}, build_upsert(doc), upsert=True
@@ -83,3 +83,12 @@ def purge_lots_obsoletes(stage: str, mois: str, departement: str, lot_ids_a_gard
         {"mois": mois, "stage": stage, "lot_id": {"$nin": garder}}
     )
     return res.deleted_count
+
+def nettoyer_lots_obsoletes(stage: str, mois: str, departement: str, batches, erreurs: int, logger) -> int:
+    """Supprime les lots périmés d'un stage, seulement si aucun lot n'a échoué."""
+    if erreurs:
+        return 0
+    n = purge_lots_obsoletes(stage, mois, departement, [b["lot_id"] for b in batches])
+    if n:
+        logger.info(f"  Lots {stage} obsolètes supprimés : {n}")
+    return n

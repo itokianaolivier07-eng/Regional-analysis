@@ -188,7 +188,7 @@ def run_stage_4(
         data["run_id"] = run_id
         data["mois"] = mois
         data["source_territoire"] = departement
-        data["region"] = "Corse"
+        data["region"] = settings.REGION_NAME
         data["meta"] = {
             "run_id": run_id,
             "empreinte_entrees": empreinte,

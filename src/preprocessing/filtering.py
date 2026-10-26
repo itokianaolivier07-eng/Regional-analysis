@@ -42,7 +42,7 @@ def normaliser_document(doc: dict) -> dict:
     return {
         "document_id": _mongo_id(doc), "title": title, "raw_text": raw_text or "",
         "source_category": category or "news", "publication_date": _extract_date_str(date_value),
-        "department": department, "region": doc.get("region") or "Corse", "metadata": metadata,
+        "department": department, "region": doc.get("region") or settings.REGION_NAME, "metadata": metadata,
         "url": doc.get("url"), "municipality": doc.get("municipality"),
         "territoire": doc.get("territoire") or department, "source_name": doc.get("source_name"),
     }

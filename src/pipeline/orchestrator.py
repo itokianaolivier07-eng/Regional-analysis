@@ -85,7 +85,7 @@ def run_region(
 ) -> Dict[str, Any]:
     """
     Pipeline unique : un seul territoire « Corse » (sources Haute-Corse + Corse-du-Sud).
-    La finale (stage 4) est écrite directement dans region_synthesis.
+    La finale (stage 4) est écrite directement dans la collection MONGO_REGION_SYNTHESIS.
     """
     logger = get_logger()
     mois = settings.resolve_mois(mois)
@@ -93,8 +93,8 @@ def run_region(
     run_id = run_id or str(uuid.uuid4())[:8]
     ensure_indexes()
 
-    region_name = getattr(settings, "REGION_NAME", "Corse")
-    territoire = "Corse"
+    region_name = settings.REGION_NAME
+    territoire = settings.REGION_NAME
 
     logger.info("=" * 60)
     logger.info(f"PIPELINE UNIQUE {region_name.upper()} - mois {mois} - run {run_id}")

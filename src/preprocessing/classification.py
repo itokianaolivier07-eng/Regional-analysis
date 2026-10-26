@@ -109,7 +109,7 @@ def _norm(texte: str) -> str:
     return re.sub(r"\s+", " ", t.lower().replace("’", "'")) + " "
 
 
-def scores_domaines(titre: str, texte: str) -> Dict[str, int]:
+def scores_mots_cles(titre: str, texte: str) -> Dict[str, int]:
     """Score par domaine : le titre compte double, chaque motif compte une fois."""
     t_titre, t_corps = _norm(titre), _norm(texte)
     scores: Dict[str, int] = {}
@@ -130,7 +130,7 @@ def scores_domaines(titre: str, texte: str) -> Dict[str, int]:
 
 def classer_domaine(titre: str, texte: str) -> Optional[str]:
     """Domaine le plus probable, ou None si le doute est trop grand."""
-    scores = scores_domaines(titre, texte)
+    scores = scores_mots_cles(titre, texte)
     if not scores:
         return None
     classement = sorted(scores.items(), key=lambda kv: -kv[1])

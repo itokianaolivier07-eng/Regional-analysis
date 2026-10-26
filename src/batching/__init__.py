@@ -1,1 +1,1 @@
-from .batcher import create_batches
+"""Découpage en lots : importer directement les modules (batcher, lot_hash)."""

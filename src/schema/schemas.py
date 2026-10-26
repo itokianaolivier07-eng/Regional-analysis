@@ -8,7 +8,7 @@ Principe :
 - Les champs techniques (run_id, stage, created_at…) sont ajoutés par Python.
 """
 from typing import Any
-
+from config import settings
 
 def _coerce(value: Any, default: Any) -> Any:
     if isinstance(value, type(default)):
@@ -45,7 +45,7 @@ SCHEMA_L1 = {
     "type": "synthese_l1",
     "mois": "",
     "source_territoire": "",
-    "region": "Corse",
+    "region": settings.REGION_NAME,
 
     "domaine_critique": "",
     "gravite": "modere",
@@ -70,7 +70,7 @@ SCHEMA_L2 = {
     "type": "synthese_l2",
     "mois": "",
     "source_territoire": "",
-    "region": "Corse",
+    "region": settings.REGION_NAME,
 
     "domaine_critique": "",
     "gravite": "modere",
@@ -96,7 +96,7 @@ SCHEMA_L3 = {
     "type": "synthese_l3",
     "mois": "",
     "source_territoire": "",
-    "region": "Corse",
+    "region": settings.REGION_NAME,
 
     "domaine_critique": "",
     "gravite": "modere",
@@ -120,7 +120,7 @@ SCHEMA_L4 = {
     "type": "synthese_finale_departement",
     "mois": "",
     "source_territoire": "",
-    "region": "Corse",
+    "region": settings.REGION_NAME,
 
     "domaine_critique": "",
     "statut_urgence": "modere",

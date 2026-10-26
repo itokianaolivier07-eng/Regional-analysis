@@ -43,7 +43,7 @@ def get_pipeline_collection(departement: str) -> Collection:
 
 
 def get_final_collection(departement: str) -> Collection:
-    # Finale = region_synthesis
+    # Finale = collection MONGO_REGION_SYNTHESIS
     _territory_config(departement)
     return get_collection(settings.MONGO_REGION_SYNTHESIS)
 

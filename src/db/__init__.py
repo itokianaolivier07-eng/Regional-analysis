@@ -1,9 +1,1 @@
-from .mongo_client import (
-    get_client,
-    get_db,
-    get_collection,
-    get_pipeline_collection,
-    get_final_collection,
-    get_region_final_collection,
-    ensure_indexes,
-)
+"""Accès à MongoDB : importer directement les modules (mongo_client, source_reader, target_writer…)."""

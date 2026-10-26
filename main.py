@@ -2,7 +2,7 @@
 Point d'entrée — Pipeline d'analyse territoriale unique Corse
 
 Les sources Haute-Corse et Corse-du-Sud sont fusionnées en un seul pipeline.
-La synthèse finale est écrite dans la collection region_synthesis.
+La synthèse finale est écrite dans la collection MONGO_REGION_SYNTHESIS (Analysis_final par défaut).
 
 Utilisation :
     python main.py --stage all

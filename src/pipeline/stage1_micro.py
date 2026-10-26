@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 from config import settings
 from src.utils.logger import get_logger
 from src.db.source_reader import read_l0, read_l1
-from src.db.target_writer import save_micro_synthese, purge_lots_obsoletes
+from src.db.target_writer import save_micro_synthese, nettoyer_lots_obsoletes
 from src.llm.client import call_llm_json_avec_retry
 from src.llm.token_budget import BudgetExceeded
 from src.llm.prompts.loader import load_prompts
@@ -139,7 +139,7 @@ def run_stage_1(
                 "run_id": run_id,
                 "mois": mois,
                 "source_territoire": departement,
-                "region": "Corse",
+                "region": settings.REGION_NAME,
             })
             data["document_ids"] = _merge_list(
                 data.get("document_ids"),
@@ -170,11 +170,8 @@ def run_stage_1(
     run_batches(batches, process, settings.MAX_WORKERS)
     stats = counters.snapshot()
 
-    if stats["erreurs"] == 0:
-        purges = purge_lots_obsoletes("L1", mois, departement, [b["lot_id"] for b in batches])
-        if purges:
-            logger.info(f"  Lots L1 obsolètes supprimés : {purges}")
-
+    nettoyer_lots_obsoletes("L1", mois, departement, batches, stats["erreurs"], logger)
+    
     duration = round(time.time() - start, 2)
     logger.info(
         f"[STAGE 1] {departement} terminé: {stats['succes']}/{len(batches)} lots, "
