@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional
 from config import settings
 from src.utils.logger import get_logger
 from src.db.source_reader import read_l2, read_l3
-from src.db.target_writer import save_bilan_transversal, purge_lots_obsoletes
+from src.db.target_writer import save_bilan_transversal, nettoyer_lots_obsoletes
 from src.llm.client import call_llm_json_avec_retry
 from src.llm.token_budget import BudgetExceeded
 from src.batching.lot_hash import assign_synthese_lot_ids, prompt_version

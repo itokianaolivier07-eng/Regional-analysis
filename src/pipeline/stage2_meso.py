@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional
 from config import settings
 from src.utils.logger import get_logger
 from src.db.source_reader import read_l1, read_l2
-from src.db.target_writer import save_meso_synthese, purge_lots_obsoletes
+from src.db.target_writer import save_meso_synthese, nettoyer_lots_obsoletes
 from src.llm.client import call_llm_json_avec_retry
 from src.llm.token_budget import BudgetExceeded
 from src.llm.prompts.loader import load_prompts

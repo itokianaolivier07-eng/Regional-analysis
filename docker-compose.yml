@@ -1,0 +1,11 @@
+services:
+  pipeline:
+    build: .
+    image: analysis-regional
+    network_mode: host
+    env_file: .env
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    volumes:
+      - ./logs:/app/logs
+      - ./.checkpoint:/app/.checkpoint
+    command: ["python", "main.py"]

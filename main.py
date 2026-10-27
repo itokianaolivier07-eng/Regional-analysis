@@ -91,7 +91,7 @@ def main():
         )
 
         statut, problemes = compute_statut_run(results)
-       
+
         try:
             save_run(
                 run_id=(results or {}).get("run_id") or f"inconnu-{int(t0)}",
@@ -105,7 +105,9 @@ def main():
             )
         except Exception as run_exc:
             logger.warning(f"Historique du run non enregistré: {run_exc}")
-        
+
+        duree = time.time() - t0
+
         if statut != "complete":
             resume = " ; ".join(problemes)
             logger.error(f"RUN INCOMPLET : {resume}")
@@ -115,21 +117,27 @@ def main():
                     context="statut du run (partial)",
                     mois=mois,
                     stage=args.stage,
+                    run_id=(results or {}).get("run_id") if isinstance(results, dict) else None,
+                    extra=resume,
+                    duree_secondes=duree,
                 )
             except Exception as mail_exc:
                 logger.warning(f"Notification run incomplet non envoyée: {mail_exc}")
             sys.exit(3)
 
-        # --- Notification de fin d'analyse ---
+        # --- Notification de fin d'analyse (rapport détaillé) ---
         try:
             notify_analysis_done(
                 results if isinstance(results, dict) else None,
                 mois=mois,
                 stage=args.stage,
+                duree_secondes=duree,
+                statut=statut,
             )
         except Exception as mail_exc:
             logger.warning(f"Notification fin d'analyse non envoyée: {mail_exc}")
         return results
+
     except KeyboardInterrupt:
         logger.warning("Arrêt manuel (Ctrl+C)")
         try:
@@ -138,13 +146,16 @@ def main():
                 context="main",
                 mois=mois,
                 stage=args.stage,
+                duree_secondes=time.time() - t0,
             )
         except Exception:
             pass
         sys.exit(0)
+
     except Exception as exc:
         logger.error(f"Erreur non gérée : {exc}", exc_info=True)
-        
+        duree = time.time() - t0
+
         try:
             save_run(
                 run_id=f"inconnu-{int(t0)}",
@@ -153,11 +164,11 @@ def main():
                 force_update=args.force_update,
                 statut="failed",
                 problemes=[f"{type(exc).__name__}: {str(exc)[:300]}"],
-                duree_secondes=time.time() - t0,
+                duree_secondes=duree,
                 results=None,
             )
         except Exception:
-            pass  
+            pass
 
         try:
             notify_error(
@@ -165,6 +176,7 @@ def main():
                 context="main (erreur bloquante)",
                 mois=mois,
                 stage=args.stage,
+                duree_secondes=duree,
             )
         except Exception:
             pass
