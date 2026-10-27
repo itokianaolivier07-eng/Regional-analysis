@@ -39,6 +39,7 @@ MONGO_SOURCE_CORSE_B = get_env("MONGO_SOURCE_CORSE_B", "Corse-du-Sud")
 MONGO_PIPELINE_STAGES_C = get_env("MONGO_PIPELINE_STAGES_C", "Analysis_pipeline")
 MONGO_REGION_SYNTHESIS = get_env("MONGO_REGION_SYNTHESIS", "Analysis_final")
 MONGO_RUNS = get_env("MONGO_RUNS", "Analysis_runs")
+MONGO_HISTORY = get_env("MONGO_HISTORY", "Analysis_history")
 
 # Domaines imposés pour le batching LLM
 DOMAINES = [

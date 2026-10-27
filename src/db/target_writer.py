@@ -2,6 +2,7 @@
 from typing import Optional
 from config import settings
 from src.db.audit import build_upsert
+from src.db.history import append_history
 from src.db.mongo_client import get_pipeline_collection, get_final_collection
 
 
@@ -17,6 +18,8 @@ def _save_stage_doc(doc: dict, stage: str, mois: str, departement: str) -> bool:
     else:
         key = {"mois": mois, "stage": stage, "lot_id": doc.get("lot_id")}
     coll.update_one(key, build_upsert(doc), upsert=True)
+    if stage == "L3":
+        append_history(doc, kind="rubrique", mois=mois)
     return True
 
 
@@ -72,6 +75,7 @@ def save_synthese_finale(doc: dict, mois: str, departement: str) -> bool:
     get_final_collection(departement).update_one(
         {"region": region, "mois": mois}, build_upsert(doc), upsert=True
     )
+    append_history(doc, kind="finale", mois=mois)
     return True
 
 def purge_lots_obsoletes(stage: str, mois: str, departement: str, lot_ids_a_garder) -> int:
