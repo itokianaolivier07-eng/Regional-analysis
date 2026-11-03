@@ -78,11 +78,12 @@ Règles :
 - Les BILANS L3 fournis concernent uniquement ce domaine. Fusionne les faits de TOUS ces bilans ; ne recopie pas un seul bilan.
 - problematique / cause / preuve / consequence / solution alignés sur ce domaine.
 - preuve = le fait le plus décisif parmi tous les bilans.
-- AUTRES_DOMAINES = contexte. ARBITRAGE.arbitrage_serre indique si le domaine imposé l'emporte de justesse.
-  Si arbitrage_serre est true : le verdict DOIT dire explicitement que le domaine imposé l'emporte de justesse et que les domaines listés dans ARBITRAGE.co_critiques sont également critiques, avec leur fait le plus décisif (champs `preuve` / `chiffres_cles` de AUTRES_DOMAINES, jamais inventé). Tu peux ajouter UNE priorité pour le domaine co-critique ; pas plus.
-  Si arbitrage_serre est false : une demi-phrase suffit pour mentionner un autre domaine critique.
+- AUTRES_DOMAINES = contexte. ARBITRAGE.arbitrage_serre indique si d'autres rubriques sont presque aussi préoccupantes que le domaine retenu.
+  Si arbitrage_serre est true : le verdict DOIT signaler, en langage naturel, que d'autres rubriques sont également très préoccupantes (celles de ARBITRAGE.co_critiques), en nommant chacune et en citant son fait le plus décisif (champs `preuve` / `chiffres_cles` de AUTRES_DOMAINES, jamais inventé). Exemple de ton : « La sécurité reste la priorité, mais l'environnement et les transports sont aussi très préoccupants : ... ». Tu peux ajouter UNE priorité pour une rubrique co-critique ; pas plus.
+  Si arbitrage_serre est false : une demi-phrase suffit pour mentionner une autre rubrique critique.
 - Ne mets jamais dans preuve, chiffres_cles ou priorites un fait qui relève d'un autre domaine : un incendie de végétation ou une canicule relèvent d'Environnement & Sécheresse (jamais de Securité & Propreté) ; un accident de la route relève de Transports & Mobilité.
 - verdict : 2 à 4 phrases max, orienté décision (ce qui est prioritaire et pourquoi).
+- Le verdict et les priorites sont lus par un agent commercial, pas par un technicien : phrases simples, en français courant, orientées action. N'écris JAMAIS de termes techniques ou de noms de champs : arbitrage, « arbitrage serré », « domaine imposé », DOMAINE_IMPOSE, ARBITRAGE, co_critiques, scores, bilans L3, lot_id, indicateurs Python.
 - priorites : 3 max.
 - chiffres_cles : 2 à 5 max, STRICTEMENT issus des BILANS L3 de ce domaine (...)
   Chaque chiffre DOIT rester contextualisé (valeur + unité + lieu/date). Recopie le contexte présent dans les bilans ; n'isole jamais un nombre.

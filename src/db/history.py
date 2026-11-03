@@ -28,7 +28,7 @@ def append_history(doc: dict, *, kind: str, mois: str, run_id: Optional[str] = N
     """
     try:
         contenu = {k: doc[k] for k in _CHAMPS if k in doc}
-        empreinte = _empreinte(contenu)
+        empreinte = _empreinte({**contenu, "periode": doc.get("periode")})
 
         coll = get_collection(settings.MONGO_HISTORY)
         cle = {"region": settings.REGION_NAME, "kind": kind, "mois": mois}
@@ -43,6 +43,7 @@ def append_history(doc: dict, *, kind: str, mois: str, run_id: Optional[str] = N
         coll.insert_one({
             **contenu,
             **cle,
+            "periode": doc.get("periode"),
             "empreinte": empreinte,
             "run_id": run_id or doc.get("run_id"),
             "horodatage": datetime.now(timezone.utc),

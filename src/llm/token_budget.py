@@ -6,12 +6,14 @@ Le compteur est stocké dans CHECKPOINT_DIR/token_budget.json sous la forme
 """
 import os
 import json
+import threading
 from datetime import date
 
 from config import settings
 
 
 BUDGET_FILE = os.path.join(settings.CHECKPOINT_DIR, "token_budget.json")
+_lock = threading.Lock()
 
 
 def _ensure_dir():
@@ -50,10 +52,11 @@ def get_consumed_today() -> int:
 
 
 def add_consumed(n: int):
-    data = _load_all()
-    key = _today_key()
-    data[key] = int(data.get(key, 0)) + int(n)
-    _save_all(data)
+    with _lock:
+        data = _load_all()
+        key = _today_key()
+        data[key] = int(data.get(key, 0)) + int(n)
+        _save_all(data)
 
 
 def estimate_tokens_from_text(text: str) -> int:

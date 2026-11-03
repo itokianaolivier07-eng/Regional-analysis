@@ -96,3 +96,13 @@ def nettoyer_lots_obsoletes(stage: str, mois: str, departement: str, batches, er
     if n:
         logger.info(f"  Lots {stage} obsolètes supprimés : {n}")
     return n
+
+def save_stats_documents(
+    stats: dict, mois: str, departement: str, run_id: Optional[str] = None
+) -> bool:
+    """Volumétrie du stage 0 (alimente le tableau de bord)."""
+    doc = {**stats, "mois": mois, "departement": departement, "stage": "stats", "run_id": run_id}
+    get_pipeline_collection(departement).update_one(
+        {"mois": mois, "stage": "stats"}, build_upsert(doc), upsert=True
+    )
+    return True

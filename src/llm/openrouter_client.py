@@ -7,6 +7,7 @@ répond 402/429/quota, on passe à la suivante avant d'abandonner.
 """
 import time
 import random
+import threading
 import requests
 
 from config import settings
@@ -16,6 +17,7 @@ from src.utils.logger import get_logger
 
 _SESSION = requests.Session()
 _key_index = 0
+_key_lock = threading.Lock()
 
 
 def call_llm(messages: list) -> str:
@@ -25,15 +27,19 @@ def call_llm(messages: list) -> str:
     if not keys:
         raise OpenRouterQuotaError("Aucune clé OpenRouter configurée")
 
+    with _key_lock:
+        start_idx = _key_index
+
     last_quota_err = None
     for i in range(len(keys)):
-        idx = (_key_index + i) % len(keys)
+        idx = (start_idx + i) % len(keys)
         api_key = keys[idx]
         try:
             result = _call_with_key(messages, api_key)
-            if idx != _key_index:
+            if idx != start_idx:
                 get_logger().info(f"[FAILOVER] OpenRouter: bascule vers clé #{idx + 1}")
-                _key_index = idx
+                with _key_lock:
+                    _key_index = idx
             return result
         except OpenRouterQuotaError as exc:
             last_quota_err = exc

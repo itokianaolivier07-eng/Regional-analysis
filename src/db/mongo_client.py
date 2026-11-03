@@ -61,3 +61,10 @@ def ensure_indexes() -> None:
     get_region_final_collection().create_index(
         [("region", 1), ("mois", 1)], unique=True
     )
+    # Index sur l'historique (requêtes fréquentes depuis l'API)
+    hist = get_collection(settings.MONGO_HISTORY)
+    hist.create_index([("kind", 1), ("mois", 1), ("horodatage", -1)])
+    hist.create_index([("horodatage", -1)])
+    hist.create_index([("kind", 1), ("mois", 1), ("domaine_critique", 1), ("lot_id", 1)])
+    # Index sur les runs (requête tri par date_fin dans l'API /stats)
+    get_collection(settings.MONGO_RUNS).create_index([("date_fin", -1)])

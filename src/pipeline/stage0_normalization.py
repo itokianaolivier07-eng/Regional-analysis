@@ -1,10 +1,10 @@
 """Stage 0 — Normalisation + indicateurs Python (multi-territoires)."""
 import time
 from typing import Dict, Any, Optional
+from src.db.target_writer import save_normalized, save_indicateurs, save_stats_documents
 from config import settings
 from src.utils.logger import get_logger
 from src.db.source_reader import read_all_sources
-from src.db.target_writer import save_normalized, save_indicateurs
 from src.db.mongo_client import get_pipeline_collection
 from src.preprocessing.filtering import (
     normaliser_document,
@@ -73,27 +73,47 @@ def run_stage_0(
     indicateurs = compute_indicateurs_python(docs_python)
     indicateurs.update(compute_theme_dominant(docs_llm))
     save_indicateurs(indicateurs, mois=mois, departement=departement, run_id=run_id)
-
+    save_stats_documents(
+        {
+            "sources_lues": len(sources_brutes),
+            "documents_periode": dedup_stats["input"],
+            "apres_dedoublonnage": dedup_stats["output"],
+            "retires": dedup_stats["removed"],
+            "social_agreges": dedup_stats["social_aggregated"],
+            "docs_llm": len(docs_llm),
+            "docs_python": len(docs_python),
+        },
+        mois=mois,
+        departement=departement,
+        run_id=run_id,
+    )
+    
     coll = get_pipeline_collection(departement)
     succes, skipped, erreurs = 0, 0, 0
 
+    deja_normalises = set()
+    if not force_update:
+        deja_normalises = {
+            d["document_id"]
+            for d in coll.find(
+                {"departement": departement, "mois": mois, "stage": "L0"},
+                {"document_id": 1},
+            )
+            if d.get("document_id")
+        }
+
     for doc in docs_llm:
         doc_id = doc.get("document_id")
-        if not force_update and doc_id:
-            existing = coll.find_one({
-                "departement": departement,
-                "mois": mois,
-                "stage": "L0",
-                "document_id": doc_id,
-            })
-            if existing:
-                skipped += 1
-                continue
+        if not force_update and doc_id and doc_id in deja_normalises:
+            skipped += 1
+            continue
         try:
             compact = build_compact_object(doc)
             compact["document_id"] = doc_id
             compact["run_id"] = run_id
             save_normalized(compact, mois=mois, departement=departement)
+            if doc_id:
+                deja_normalises.add(doc_id)
             succes += 1
         except Exception as e:
             erreurs += 1

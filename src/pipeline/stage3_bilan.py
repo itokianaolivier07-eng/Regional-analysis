@@ -13,7 +13,7 @@ from src.llm.token_budget import BudgetExceeded
 from src.batching.lot_hash import assign_synthese_lot_ids, prompt_version
 from src.batching.batcher import create_batches_by_domaine, domaine_synthese
 from src.schema.schemas import validate_and_fill, ensure_content
-from src.pipeline.aggregation import select_enriched, merge_enriched
+from src.pipeline.aggregation import select_enriched, merge_enriched, fusion_periodes
 from src.pipeline.parallel import run_batches, ThreadSafeCounters
 from src.llm.prompts.loader import load_prompts
 
@@ -134,6 +134,7 @@ def run_stage_3(
                 "date_analyse": datetime.now(timezone.utc).date().isoformat(),
             }
             data = merge_enriched(data, source_docs)
+            data["periode"] = fusion_periodes([d.get("periode") for d in source_docs])
             save_bilan_transversal(data, mois=mois, departement=departement)
             counters.increment("succes")
             existing_ids.add(lot_id)

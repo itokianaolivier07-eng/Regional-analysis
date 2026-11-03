@@ -1,4 +1,5 @@
 """Propagation déterministe de la traçabilité entre les stages (format compact)."""
+import re
 from itertools import zip_longest
 from typing import Any, Dict, List
 from src.schema.schemas import ENRICHED_LIST_FIELDS
@@ -132,3 +133,19 @@ def merge_enriched(
             llm_output[field] = val[: limits[field]]
 
     return llm_output
+
+_RE_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def calcul_periode(dates):
+    """Plus ancienne et plus récente date (YYYY-MM-DD) d'une liste ; None si aucune valide."""
+    valides = sorted(str(d)[:10] for d in dates if d and _RE_DATE.match(str(d)[:10]))
+    return {"debut": valides[0], "fin": valides[-1]} if valides else None
+
+
+def fusion_periodes(periodes):
+    """Fusionne plusieurs périodes : plus ancien début, plus récente fin."""
+    ps = [p for p in periodes if p and p.get("debut") and p.get("fin")]
+    if not ps:
+        return None
+    return {"debut": min(p["debut"] for p in ps), "fin": max(p["fin"] for p in ps)}

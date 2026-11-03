@@ -1,11 +1,49 @@
 services:
-  pipeline:
+  api:
     build: .
-    image: analysis-regional
-    network_mode: host
+    image: analysis-regional-backend
     env_file: .env
-    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/openapi.json', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  gateway:
+    image: caddy:2-alpine
+    environment:
+      SITE_ADDRESS: "${SITE_ADDRESS:-:80}"
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+  pipeline:
+    image: analysis-regional-backend
+    build: .
+    env_file: .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./logs:/app/logs
       - ./.checkpoint:/app/.checkpoint
     command: ["python", "main.py"]
+    profiles:
+      - pipeline
+
+volumes:
+  caddy_data:
+  caddy_config:

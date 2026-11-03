@@ -1,21 +1,18 @@
-"""Logger simple pour le pipeline département."""
+"""Logger pour le pipeline département."""
 import logging
 import sys
 from datetime import datetime
 from config import settings
 
 
-_LOGGER = None
-
-
 def get_logger(name: str = "departement_pipeline") -> logging.Logger:
-    global _LOGGER
-    if _LOGGER is not None:
-        return _LOGGER
-
     logger = logging.getLogger(name)
+
+    # Ne configurer les handlers qu'une seule fois par logger
+    if logger.handlers:
+        return logger
+
     logger.setLevel(logging.INFO)
-    logger.handlers.clear()
 
     fmt = logging.Formatter(
         "%(asctime)s | %(levelname)-7s | %(message)s",
@@ -41,5 +38,4 @@ def get_logger(name: str = "departement_pipeline") -> logging.Logger:
         pass
 
     logger.propagate = False
-    _LOGGER = logger
     return logger

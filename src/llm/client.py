@@ -16,6 +16,7 @@ Sans LiteLLM : clients natifs google_client / openrouter_client.
 """
 from __future__ import annotations
 
+import threading
 from typing import List, Tuple
 
 from config import settings
@@ -27,8 +28,8 @@ from src.utils.logger import get_logger
 
 logger = get_logger()
 
-# Fournisseur actuellement actif (index dans le pipeline)
 _CURRENT_PROVIDER_INDEX = 0
+_provider_lock = threading.Lock()
 
 
 def _get_provider_pipeline() -> List[Tuple[str, callable]]:
@@ -98,18 +99,22 @@ def call_llm(messages: list) -> str:
     num_providers = len(pipeline)
     last_exc = None
 
+    with _provider_lock:
+        start_idx = _CURRENT_PROVIDER_INDEX
+
     for i in range(num_providers):
-        idx = (_CURRENT_PROVIDER_INDEX + i) % num_providers
+        idx = (start_idx + i) % num_providers
         provider_name, call_fn = pipeline[idx]
 
         try:
             raw = call_fn(messages)
 
-            if idx != _CURRENT_PROVIDER_INDEX:
+            if idx != start_idx:
                 logger.info(
                     f"[FAILOVER] Fournisseur actif basculé vers: {provider_name.upper()}"
                 )
-                _CURRENT_PROVIDER_INDEX = idx
+                with _provider_lock:
+                    _CURRENT_PROVIDER_INDEX = idx
 
             _record_usage(prompt_tokens, raw)
             return raw

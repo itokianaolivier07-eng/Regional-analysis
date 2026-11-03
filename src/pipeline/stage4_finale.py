@@ -10,7 +10,7 @@ from src.db.source_reader import read_l3, read_indicateurs, read_finale
 from src.db.target_writer import save_synthese_finale
 from src.llm.client import call_llm_json_avec_retry
 from src.schema.schemas import validate_and_fill, ensure_content
-from src.pipeline.aggregation import select_enriched, merge_enriched
+from src.pipeline.aggregation import select_enriched, merge_enriched, fusion_periodes
 from src.pipeline.arbitrage import (
     choisir_domaine,
     bilans_du_domaine,
@@ -209,6 +209,7 @@ def run_stage_4(
             "date_analyse": datetime.now(timezone.utc).date().isoformat(),
         }
         data = merge_enriched(data, docs_domaine, final=True)
+        data["periode"] = fusion_periodes([d.get("periode") for d in docs_l3])        
         save_synthese_finale(data, mois=mois, departement=departement)
         succes = 1
         logger.info(f"  Synthèse finale - {settings.MONGO_REGION_SYNTHESIS} OK ({departement})")

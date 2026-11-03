@@ -135,16 +135,16 @@ def _now() -> str:
 
 
 def _esc(value: Any) -> str:
-    return html.escape(str(value) if value is not None else "—")
+    return html.escape(str(value) if value is not None else "-")
 
 
 def _fmt_duration(seconds: Optional[float]) -> str:
     if seconds is None:
-        return "—"
+        return "-"
     try:
         s = float(seconds)
     except (TypeError, ValueError):
-        return "—"
+        return "-"
     if s < 60:
         return f"{s:.1f} s"
     m, sec = divmod(int(round(s)), 60)
@@ -263,7 +263,7 @@ def _collect_stage_rows(results: Optional[dict]) -> List[Dict[str, Any]]:
         if stage_map.get("skipped"):
             rows.append({
                 "territoire": territoire,
-                "stage": "—",
+                "stage": "-",
                 "label": "Territoire déjà traité (skip)",
                 "docs": None,
                 "lots": None,
@@ -347,7 +347,7 @@ def _build_report_plain(results: Optional[dict], duree_totale: Optional[float] =
         if meta:
             parts.append(" · ".join(meta))
         if r.get("error"):
-            parts.append(f"  ⚠ {r['error']}")
+            parts.append(f"  ! {r['error']}")
         lines.append("\n".join(parts) if len(parts) > 1 else parts[0])
 
     total_succes = _sum_metric(rows, "succes")
@@ -394,7 +394,7 @@ def _build_report_html(results: Optional[dict], duree_totale: Optional[float] = 
             docs_lots.append(f"{r['docs']} doc(s)")
         if r["lots"] is not None:
             docs_lots.append(f"{r['lots']} lot(s)")
-        docs_cell = " · ".join(docs_lots) if docs_lots else "—"
+        docs_cell = " · ".join(docs_lots) if docs_lots else "-"
         err_style = "color:#b91c1c;font-weight:600;" if (r.get("erreurs") or 0) else ""
         err_cell = f"<span style='{err_style}'>{_esc(r['erreurs'] if r['erreurs'] is not None else '—')}</span>"
         error_note = (

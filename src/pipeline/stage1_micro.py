@@ -4,6 +4,7 @@ import time
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from config import settings
+from src.pipeline.aggregation import calcul_periode
 from src.utils.logger import get_logger
 from src.db.source_reader import read_l0, read_l1
 from src.db.target_writer import save_micro_synthese, nettoyer_lots_obsoletes
@@ -145,6 +146,7 @@ def run_stage_1(
                 data.get("document_ids"),
                 [x.get("document_id") for x in source_refs if x.get("document_id")],
             )
+            data["periode"] = calcul_periode([d.get("date") for d in batch["documents"]])
             data["meta"] = {
                 **(data.get("meta") or {}),
                 "run_id": run_id,

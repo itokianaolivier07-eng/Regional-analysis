@@ -52,6 +52,13 @@ DOMAINES = [
 
 # Nom de la région : source de vérité unique (clé du territoire et champ "region" des résultats)
 REGION_NAME = "Corse"
+API_CORS_ORIGINS = [
+    origin.strip()
+    for origin in get_env("API_CORS_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
+
+API_KEY = get_env("API_KEY", "")
 
 # Mapping unique : un seul territoire qui lit les deux sources
 TERRITOIRES = {

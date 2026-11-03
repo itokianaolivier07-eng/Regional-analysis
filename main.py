@@ -70,6 +70,12 @@ def main():
     if args.force_update:
         logger.warning("MODE FORCE-UPDATE ACTIVÉ")
 
+    try:
+        settings.validate()
+    except ValueError as exc:
+        logger.error(str(exc))
+        sys.exit(2)
+
     # --- Notification de démarrage ---
     try:
         notify_startup(
@@ -82,7 +88,6 @@ def main():
         logger.warning(f"Notification démarrage non envoyée: {mail_exc}")
 
     try:
-        settings.validate()
         results = run_pipeline(
             stage=args.stage,
             force_update=args.force_update,

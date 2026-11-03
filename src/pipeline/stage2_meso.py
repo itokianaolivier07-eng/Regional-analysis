@@ -14,7 +14,7 @@ from src.llm.prompts.loader import load_prompts
 from src.batching.lot_hash import assign_synthese_lot_ids, prompt_version
 from src.batching.batcher import create_batches_by_domaine, domaine_synthese
 from src.schema.schemas import validate_and_fill, ensure_content
-from src.pipeline.aggregation import select_enriched, merge_enriched
+from src.pipeline.aggregation import select_enriched, merge_enriched, fusion_periodes
 from src.pipeline.parallel import run_batches, ThreadSafeCounters
 
 SYSTEM_PROMPT, USER_TEMPLATE = load_prompts("DEPARTEMENT_L2")
@@ -125,6 +125,7 @@ def run_stage_2(
                 "date_analyse": datetime.now(timezone.utc).date().isoformat(),
             }
             data = merge_enriched(data, source_docs)
+            data["periode"] = fusion_periodes([d.get("periode") for d in source_docs])
             save_meso_synthese(data, mois=mois, departement=departement)
             counters.increment("succes")
             existing_ids.add(lot_id)
