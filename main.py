@@ -72,7 +72,7 @@ def main():
 
     try:
         settings.validate()
-    except ValueError as exc:
+    except (ValueError, RuntimeError) as exc:
         logger.error(str(exc))
         sys.exit(2)
 
