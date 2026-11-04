@@ -43,7 +43,19 @@ services:
     command: ["python", "main.py"]
     profiles:
       - pipeline
+  
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      GENERIC_TIMEZONE: "Europe/Paris"
+      TZ: "Europe/Paris"
+    volumes:
+      - n8n_data:/home/node/.n8n
 
 volumes:
   caddy_data:
   caddy_config:
+  n8n_data:
