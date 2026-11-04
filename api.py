@@ -1,7 +1,7 @@
 """API en lecture seule pour l'interface (historique des analyses)."""
 import secrets
 from typing import Optional
-
+from starlette.responses import PlainTextResponse
 from fastapi import Depends, FastAPI, HTTPException, Query, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
@@ -22,7 +22,20 @@ def verifier_cle(cle: Optional[str] = Security(_cle_header)) -> None:
     if not cle or not secrets.compare_digest(cle, attendue):
         raise HTTPException(401, "Clé d'API invalide.")
 
-app = FastAPI(title="Analyse régionale - API", dependencies=[Depends(verifier_cle)])
+app = FastAPI(
+    title="Analyse régionale - API",
+    dependencies=[Depends(verifier_cle)],
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
+
+
+async def health(request):
+    return PlainTextResponse("ok")
+
+
+app.add_route("/health", health, include_in_schema=False)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.API_CORS_ORIGINS,
